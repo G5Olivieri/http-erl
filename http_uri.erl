@@ -1,40 +1,91 @@
 -module(http_uri).
--compile(export_all).
+-include("http_uri.hrl").
+-export([parse/1]).
 
-parse_path(Url) when is_list(Url) ->
-  parse_path(list_to_binary(Url));
-parse_path(<<"http://", Url/bitstring>>) ->
-  parse_path(Url);
-parse_path(Url) ->
-  case string:split(Url, <<"?">>) of
-    [_] -> parse_path_1(Url);
-    [_, <<>>] -> parse_path_1(Url);
-    [Host, _]-> parse_path_1(Host)
+parse(Url) when is_list(Url) ->
+  parse(list_to_binary(Url));
+parse(<<$/, Uri>>) ->
+  parse_path(Uri, <<"http">>, <<>>, <<>>, <<>>, <<"/">>).
+parse(Url) ->
+  parse_scheme(Url).
+
+parse_scheme(<< H, T, T, P, "://", Rest/bits >>)
+  when H =:= $h orelse H =:= $H, T =:= $t orelse T =:= $T;
+       P =:= $p orelse P =:= $P ->
+  parse_username(Rest, <<"http">>, <<>>);
+parse_scheme(Url) ->
+  parse_username(Url, <<"http">>, <<>>).
+
+parse_username(<<>>, Scheme, Username) ->
+  #http_uri{
+     scheme=Scheme,
+     host=Username
+    };
+parse_username(<<C, Rest/bitstring>>, Scheme, Username) ->
+  case C of
+    $: -> parse_port(Rest, Scheme, <<>>, Username, <<>>);
+    $/ -> parse_path(Rest, Scheme, <<>>, Username, <<"80">>, <<"/">>);
+    $? -> parse_query(Rest, Scheme, <<>>, Username, <<"80">>, <<"/">>, <<>>);
+    $@ -> parse_host(Rest, Scheme, Username, <<>>);
+    _ -> parse_username(Rest, Scheme, <<Username/bitstring, C>>)
   end.
 
-parse_path_1(Host) ->
-  case string:split(Host, <<"/">>) of
-    [_] -> {path, <<"/">>};
-    [_, <<>>] -> {path, <<"/">>};
-    [_, Path] -> {path, <<"/", Path/bitstring>>}
+parse_host(<<>>, _, _, <<>>) ->
+  {error, "Missing host"};
+parse_host(<<>>, Scheme, Username, Host) ->
+  #http_uri{
+     scheme=Scheme,
+     username=Username,
+     host=Host
+    };
+parse_host(<<C, Rest/bitstring>>, Scheme, Username, Host) ->
+  case C of
+    $: -> parse_port(Rest, Scheme, Username, Host, <<>>);
+    $/ -> parse_path(Rest, Scheme, Username, Host, <<"80">>, <<"/">>);
+    $? -> parse_query(Rest, Scheme, Username, Host, <<"80">>, <<"/">>, <<>>);
+    _ -> parse_host(Rest, Scheme, Username, <<Host/bitstring, C>>)
   end.
 
-parse_host(Url) when is_list(Url) ->
-  parse_host(list_to_binary(Url));
-parse_host(<<"http://", Url/bitstring>>) ->
-  parse_host(Url);
-parse_host(Url) ->
-  case bitstring:member(<<"@">>, Url) of
-    true ->
-      [_,Host] = string:split(Url, <<"@">>),
-      parse_host_1(Host);
-    false ->
-      parse_host_1(Url)
+parse_port(<<>>, Scheme, Username, Host, Port) ->
+  #http_uri{
+     scheme=Scheme,
+     username=Username,
+     host=Host,
+     port=Port
+    };
+parse_port(<<C, Rest/bitstring>>, Scheme, Username, Host, Port) ->
+  case C of
+    $/ -> parse_path(Rest, Scheme, Username, Host, Port, <<"/">>);
+    $? -> parse_query(Rest, Scheme, Username, Host, Port, <<"/">>, <<>>);
+    _ -> parse_port(Rest, Scheme, Username, Host, <<Port/bitstring, C>>)
   end.
 
-parse_host_1(Url) ->
-    [Host|_] = bitstring:tokens(Url, <<":?/">>),
-    {host, Host}.
+parse_path(<<>>, Scheme, Username, Host, Port, Path) ->
+  #http_uri{
+     scheme=Scheme,
+     username=Username,
+     host=Host,
+     port=Port,
+     path=Path
+    };
+parse_path(Rest, Scheme, Username, Host, <<>>, Path) ->
+  parse_path(Rest, Scheme, Username, Host, <<"80">>, Path);
+parse_path(<<C, Rest/bitstring>>, Scheme, Username, Host, Port, Path) ->
+  case C of
+    $? -> parse_query(Rest, Scheme, Username, Host, Port, Path, <<>>);
+    _ -> parse_path(Rest, Scheme, Username, Host, Port, <<Path/bitstring, C>>)
+  end.
 
-parse_scheme(_) ->
-  {scheme, <<"http">>}.
+parse_query(<<>>, Scheme, Username, Host, Port, Path, Query) ->
+  #http_uri{
+     scheme=Scheme,
+     username=Username,
+     host=Host,
+     port=Port,
+     path=Path,
+     query=Query
+    };
+parse_query(Rest, Scheme, Username, Host, <<>>, Path, Query) ->
+  parse_query(Rest, Scheme, Username, Host, <<"80">>, Path, Query);
+parse_query(<<C, Rest/bitstring>>, Scheme, Username, Host, Port, Path, Query) ->
+  parse_query(Rest, Scheme, Username, Host, Port, Path, <<Query/bitstring, C>>).
