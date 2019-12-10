@@ -28,5 +28,9 @@ parse_http_path_test_() ->
    ?_assertEqual({path, <<"/path">>}, http_uri:parse_path("http://google.com/path")),
    ?_assertEqual({path, <<"/path">>}, http_uri:parse_path("http://google.com/path?query")),
    ?_assertEqual({path, <<"/">>}, http_uri:parse_path("http://google.com?path/query")),
-   ?_assertEqual({path, <<"/path/query">>}, http_uri:parse_path("http://google.com/path/query"))
+   ?_assertEqual({path, <<"/path/query">>}, http_uri:parse_path("http://google.com/path/query")),
+   ?_assertEqual({path, <<"/path/query/fragment">>}, http_uri:parse_path("http://google.com/path/query/fragment?query"))
   ].
+
+parse_http_query_test_() ->
+  [ ].
