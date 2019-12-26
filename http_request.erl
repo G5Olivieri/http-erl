@@ -13,27 +13,18 @@
   ]
 ).
 
--spec request_uri(RequestLine :: bitstring() | string()) -> bitstring() | {error, Why :: bitstring()}.
+parse_request_line(R) when is_list(R) ->
+  parse_request_line(list_to_binary(R));
+parse_request_line(R) ->
+  method(R, <<>>);
 
-request_uri(RequestLine) when is_list(RequestLine) ->
-  request_uri(list_to_binary(RequestLine));
-request_uri(RequestLine) ->
-  [_,RequestUri|_] = string:split(RequestLine, " ", all),
-  request_uri1(string:uppercase(RequestUri)).
-
-request_uri1(<<"*">> = T) ->
-  T.
-
--spec method(RequestLine :: bitstring() | string()) -> bitstring() | {error, Why :: bitstring()}.
-
-method(RequestLine) when is_list(RequestLine) ->
-  method(list_to_binary(RequestLine));
-method(RequestLine) ->
-  [Method|_] = string:split(RequestLine, " ", leading),
-  method1(string:uppercase(Method)).
-
-method1(T) ->
-  case lists:member(T, ?ALLOWED_METHODS) of
-    true -> T;
-    false -> {error, <<"Method not found">>}
+method(<<C, Rest/bitstring>>, Method) ->
+  case C of
+    $\s -> resource(Rest, string:to_upper(Method), <<>>)
+    _ -> method(Rest, <<Method/bitstring, C>>)
   end.
+
+resource(R, Method, Resource) ->
+  [Uri, Rest] = string:split(R, <<" ">>),
+  Resource = http_uri:parse(Uri),
+  version(Rest, Method, Resource, <<>>).
