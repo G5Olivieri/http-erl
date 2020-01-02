@@ -1,5 +1,5 @@
 -module(bitstring).
--export([tokens/2, reverse/1, member/2]).
+-export([to_upper/1, tokens/2, reverse/1, member/2]).
 
 -spec member(binary(), bitstring()) -> boolean().
 member(<<_X/unsigned>>, <<_X/unsigned, _/bitstring>>) ->
@@ -13,6 +13,26 @@ member(_, <<>>) ->
 reverse(<<>>) -> <<>>;
 reverse(Bin) ->
   binary:encode_unsigned(binary:decode_unsigned(Bin, little)).
+
+-spec to_upper(list() | bitstring() | integer() | binary()) -> bitstring().
+to_upper(C) when is_integer(C) ->
+  to_upper(<<C>>);
+to_upper(C) when is_list(C) ->
+  to_upper(binary:list_to_bin(C));
+to_upper(<<C>>) ->
+  U = to_upper_char(C),
+  <<U>>;
+to_upper(S) ->
+  binary:list_to_bin([ to_upper_char(C) || <<C>> <= S ]).
+
+to_upper_char(C) when $a =< C, C =< $z ->
+  C - 32;
+to_upper_char(C) when 16#E0 =< C, C =< 16#F6 ->
+  C - 32;
+to_upper_char(C) when 16#F8 =< C, C =< 16#FE ->
+  C - 32;
+to_upper_char(C) ->
+  C.
 
 -spec tokens(bitstring(), bitstring()) -> list(bitstring()).
 tokens(S, Seps) ->

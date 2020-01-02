@@ -29,3 +29,13 @@ tokens_test_() ->
    ?_assertEqual([<<"ró">>], bitstring:tokens(<<"róle">>, <<"le">>)),
    ?_assertEqual([<<"óle">>], bitstring:tokens(<<"róle">>, <<"r">>))
   ].
+
+to_upper_test_() ->
+   [
+    ?_assertEqual(<<"RONALDO É 9">>, bitstring:to_upper(<<"Ronaldo é 9">>)),
+    ?_assertEqual(<<"RONALDO É 9">>, bitstring:to_upper("Ronaldo é 9")),
+    ?_assertEqual(<<"R">>, bitstring:to_upper(<<"R">>)),
+    ?_assertEqual(<<"R">>, bitstring:to_upper("R")),
+    ?_assertEqual(<<"R">>, bitstring:to_upper(<<"r">>)),
+    ?_assertEqual(<<"R">>, bitstring:to_upper("r"))
+   ].
