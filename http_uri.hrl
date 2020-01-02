@@ -7,3 +7,4 @@
           query = <<>> :: bitstring()
          }).
 
+-type httpuri() :: #http_uri{}.

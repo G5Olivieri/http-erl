@@ -116,20 +116,20 @@ parse_http_uri_test_() ->
       http_uri:parse("google.com:/?")),
    ?_assertEqual(
       #http_uri{
-         scheme   = <<"http">>,
+         scheme   = <<>>,
          username = <<>>,
          host     = <<>>,
-         port     = <<"80">>,
+         port     = <<>>,
          path     = <<"/path">>,
-         query    = <<"">>
+         query    = <<>>
         },
       http_uri:parse("/path")),
    ?_assertEqual(
       #http_uri{
-         scheme   = <<"http">>,
+         scheme   = <<>>,
          username = <<>>,
          host     = <<>>,
-         port     = <<"80">>,
+         port     = <<>>,
          path     = <<"/path">>,
          query    = <<"query">>
         },

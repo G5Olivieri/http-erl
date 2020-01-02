@@ -4,8 +4,8 @@
 
 parse(Url) when is_list(Url) ->
   parse(list_to_binary(Url));
-parse(<<$/, Uri>>) ->
-  parse_path(Uri, <<"http">>, <<>>, <<>>, <<>>, <<"/">>).
+parse(<<$/, Uri/bitstring>>) ->
+  parse_path(Uri, <<>>, <<>>, <<>>, <<>>, <<"/">>);
 parse(Url) ->
   parse_scheme(Url).
 
@@ -55,8 +55,16 @@ parse_port(<<>>, Scheme, Username, Host, Port) ->
     };
 parse_port(<<C, Rest/bitstring>>, Scheme, Username, Host, Port) ->
   case C of
-    $/ -> parse_path(Rest, Scheme, Username, Host, Port, <<"/">>);
-    $? -> parse_query(Rest, Scheme, Username, Host, Port, <<"/">>, <<>>);
+    $/ ->
+      case Port of
+        <<>> -> parse_path(Rest, Scheme, Username, Host, <<"80">>, <<"/">>);
+        S -> parse_path(Rest, Scheme, Username, Host, S, <<"/">>)
+      end;
+    $? ->
+      case Port of
+        <<>> -> parse_query(Rest, Scheme, Username, Host, <<"80">>, <<"/">>, <<>>);
+        S -> parse_query(Rest, Scheme, Username, Host, S, <<"/">>, <<>>)
+      end;
     _ -> parse_port(Rest, Scheme, Username, Host, <<Port/bitstring, C>>)
   end.
 
@@ -68,8 +76,6 @@ parse_path(<<>>, Scheme, Username, Host, Port, Path) ->
      port=Port,
      path=Path
     };
-parse_path(Rest, Scheme, Username, Host, <<>>, Path) ->
-  parse_path(Rest, Scheme, Username, Host, <<"80">>, Path);
 parse_path(<<C, Rest/bitstring>>, Scheme, Username, Host, Port, Path) ->
   case C of
     $? -> parse_query(Rest, Scheme, Username, Host, Port, Path, <<>>);
@@ -85,7 +91,5 @@ parse_query(<<>>, Scheme, Username, Host, Port, Path, Query) ->
      path=Path,
      query=Query
     };
-parse_query(Rest, Scheme, Username, Host, <<>>, Path, Query) ->
-  parse_query(Rest, Scheme, Username, Host, <<"80">>, Path, Query);
 parse_query(<<C, Rest/bitstring>>, Scheme, Username, Host, Port, Path, Query) ->
   parse_query(Rest, Scheme, Username, Host, Port, Path, <<Query/bitstring, C>>).
