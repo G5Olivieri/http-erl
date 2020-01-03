@@ -133,5 +133,15 @@ parse_http_uri_test_() ->
          path     = <<"/path">>,
          query    = <<"query">>
         },
-      http_uri:parse("/path?query"))
+      http_uri:parse("/path?query")),
+   ?_assertEqual(
+      #http_uri{
+         scheme   = <<"http">>,
+         username = <<>>,
+         host     = <<"HTTP">>,
+         port     = <<"80">>,
+         path     = <<"/1.1">>,
+         query    = <<>>
+        },
+      http_uri:parse("HTTP/1.1"))
   ].
